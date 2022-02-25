@@ -3,18 +3,16 @@ package deployment
 import (
 	"fmt"
 	"io"
-	"strings"
 	"text/template"
 
 	"github.com/arttor/helmify/pkg/cluster"
+	"github.com/arttor/helmify/pkg/helmify"
 	"github.com/arttor/helmify/pkg/processor"
 
-	"github.com/arttor/helmify/pkg/helmify"
-	yamlformat "github.com/arttor/helmify/pkg/yaml"
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
+
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -42,10 +40,6 @@ spec:
     spec:
 {{ .Spec }}`)
 
-const selectorTempl = `%[1]s
-{{- include "%[2]s.selectorLabels" . | nindent 6 }}
-%[3]s`
-
 // New creates processor for k8s Deployment resource.
 func New() helmify.Processor {
 	return &deployment{}
@@ -58,107 +52,47 @@ func (d deployment) Process(appMeta helmify.AppMetadata, obj *unstructured.Unstr
 	if obj.GroupVersionKind() != deploymentGVC {
 		return false, nil, nil
 	}
-	depl := appsv1.Deployment{}
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &depl)
+	typedObj := appsv1.Deployment{}
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &typedObj)
 	if err != nil {
 		return true, nil, errors.Wrap(err, "unable to cast to deployment")
-	}
-	meta, err := processor.ProcessObjMeta(appMeta, obj)
-	if err != nil {
-		return true, nil, err
 	}
 
 	values := helmify.Values{}
 
 	name := appMeta.TrimName(obj.GetName())
-	replicas, err := processReplicas(name, &depl, &values)
+
+	meta, err := processor.ProcessObjMeta(appMeta, obj)
 	if err != nil {
 		return true, nil, err
 	}
 
-	matchLabels, err := yamlformat.Marshal(map[string]interface{}{"matchLabels": depl.Spec.Selector.MatchLabels}, 0)
+	replicas, err := processor.ProcessReplicas(name, typedObj.Spec.Replicas, &values)
 	if err != nil {
 		return true, nil, err
 	}
-	matchExpr := ""
-	if depl.Spec.Selector.MatchExpressions != nil {
-		matchExpr, err = yamlformat.Marshal(map[string]interface{}{"matchExpressions": depl.Spec.Selector.MatchExpressions}, 0)
-		if err != nil {
-			return true, nil, err
-		}
-	}
-	selector := fmt.Sprintf(selectorTempl, matchLabels, appMeta.ChartName(), matchExpr)
-	selector = strings.Trim(selector, " \n")
-	selector = string(yamlformat.Indent([]byte(selector), 4))
 
-	podLabels, err := yamlformat.Marshal(depl.Spec.Template.ObjectMeta.Labels, 8)
+	selector, err := processor.ProcessSelector(appMeta, typedObj.Spec.Selector)
+	if err != nil {
+		return true, nil, err
+	}
+
+	pod := processor.Pod{
+		Name:    strcase.ToLowerCamel(name),
+		AppMeta: appMeta,
+		Pod:     &typedObj.Spec.Template,
+	}
+
+	podLabels, podAnnotations, err := pod.ProcessObjectMeta()
 	if err != nil {
 		return true, nil, err
 	}
 	podLabels += fmt.Sprintf("\n      {{- include \"%s.selectorLabels\" . | nindent 8 }}", appMeta.ChartName())
 
-	podAnnotations := ""
-	if len(depl.Spec.Template.ObjectMeta.Annotations) != 0 {
-		podAnnotations, err = yamlformat.Marshal(map[string]interface{}{"annotations": depl.Spec.Template.ObjectMeta.Annotations}, 6)
-		if err != nil {
-			return true, nil, err
-		}
-
-		podAnnotations = "\n" + podAnnotations
-	}
-
-	nameCamel := strcase.ToLowerCamel(name)
-	podValues, err := processPodSpec(nameCamel, appMeta, &depl.Spec.Template.Spec)
+	spec, err := pod.ProcessSpec(&values)
 	if err != nil {
 		return true, nil, err
 	}
-	err = values.Merge(podValues)
-	if err != nil {
-		return true, nil, err
-	}
-
-	// replace PVC to templated name
-	for i := 0; i < len(depl.Spec.Template.Spec.Volumes); i++ {
-		vol := depl.Spec.Template.Spec.Volumes[i]
-		if vol.PersistentVolumeClaim == nil {
-			continue
-		}
-		tempPVCName := appMeta.TemplatedName(vol.PersistentVolumeClaim.ClaimName)
-		depl.Spec.Template.Spec.Volumes[i].PersistentVolumeClaim.ClaimName = tempPVCName
-	}
-
-	// replace container resources with template to values.
-	specMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&depl.Spec.Template.Spec)
-	if err != nil {
-		return true, nil, err
-	}
-	containers, _, err := unstructured.NestedSlice(specMap, "containers")
-	if err != nil {
-		return true, nil, err
-	}
-	for i := range containers {
-		containerName := strcase.ToLowerCamel((containers[i].(map[string]interface{})["name"]).(string))
-		res, exists, err := unstructured.NestedMap(values, nameCamel, containerName, "resources")
-		if err != nil {
-			return true, nil, err
-		}
-		if !exists || len(res) == 0 {
-			continue
-		}
-		err = unstructured.SetNestedField(containers[i].(map[string]interface{}), fmt.Sprintf(`{{- toYaml .Values.%s.%s.resources | nindent 10 }}`, nameCamel, containerName), "resources")
-		if err != nil {
-			return true, nil, err
-		}
-	}
-	err = unstructured.SetNestedSlice(specMap, containers, "containers")
-	if err != nil {
-		return true, nil, err
-	}
-	spec, err := yamlformat.Marshal(specMap, 6)
-	if err != nil {
-		return true, nil, err
-	}
-	spec = strings.ReplaceAll(spec, "'", "")
 
 	return true, &result{
 		values: values,
