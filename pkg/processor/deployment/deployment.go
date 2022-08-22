@@ -5,9 +5,9 @@ import (
 	"io"
 	"text/template"
 
-	"github.com/arttor/helmify/pkg/cluster"
-	"github.com/arttor/helmify/pkg/helmify"
-	"github.com/arttor/helmify/pkg/processor"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/cluster"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/helmify"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/processor"
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"

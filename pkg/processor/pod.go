@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arttor/helmify/pkg/helmify"
-	yamlformat "github.com/arttor/helmify/pkg/yaml"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/helmify"
+	yamlformat "github.com/vinodchitraliNVIDIA/helmify/pkg/yaml"
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"

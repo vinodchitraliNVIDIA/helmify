@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"github.com/arttor/helmify/pkg/helmify"
-	"github.com/arttor/helmify/pkg/processor"
-	yamlformat "github.com/arttor/helmify/pkg/yaml"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/helmify"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/processor"
+	yamlformat "github.com/vinodchitraliNVIDIA/helmify/pkg/yaml"
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"io"

@@ -6,8 +6,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/arttor/helmify/pkg/helmify"
-	yamlformat "github.com/arttor/helmify/pkg/yaml"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/helmify"
+	yamlformat "github.com/vinodchitraliNVIDIA/helmify/pkg/yaml"
 )
 
 const metaTeml = `apiVersion: %[1]s

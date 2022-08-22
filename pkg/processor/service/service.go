@@ -6,10 +6,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/arttor/helmify/pkg/processor"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/processor"
 
-	"github.com/arttor/helmify/pkg/helmify"
-	yamlformat "github.com/arttor/helmify/pkg/yaml"
+	"github.com/vinodchitraliNVIDIA/helmify/pkg/helmify"
+	yamlformat "github.com/vinodchitraliNVIDIA/helmify/pkg/yaml"
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

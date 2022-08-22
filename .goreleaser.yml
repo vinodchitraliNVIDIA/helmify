@@ -37,14 +37,14 @@ checksum:
 brews:
   -
     tap:
-      owner: arttor
+      owner: vinodchitraliNVIDIA
       name: homebrew-tap
     commit_author:
-      name: arttor
+      name: vinodchitraliNVIDIA
       email: torubarov-a-a@yandex.ru
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     folder: Formula
-    homepage: "https://github.com/arttor/helmify"
+    homepage: "https://github.com/vinodchitraliNVIDIA/helmify"
     description: "Creates Helm chart from Kubernetes yaml."
     license: "MIT"
     test: |
@@ -53,5 +53,5 @@ brews:
       bin.install "helmify"
 release:
   github:
-    owner: arttor
+    owner: vinodchitraliNVIDIA
     name: helmify
