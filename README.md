@@ -77,7 +77,8 @@ Usage:
 
 ## Status
 Supported k8s resources:
-- deployment
+=======
+- deployment, statefulset
 - daemonset
 - service, Ingress
 - PersistentVolumeClaim
