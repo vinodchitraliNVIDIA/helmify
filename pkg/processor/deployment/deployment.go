@@ -3,14 +3,17 @@ package deployment
 import (
 	"fmt"
 	"io"
+	"strings"
 	"text/template"
 
 	"github.com/vinodchitraliNVIDIA/helmify/pkg/cluster"
 	"github.com/vinodchitraliNVIDIA/helmify/pkg/helmify"
 	"github.com/vinodchitraliNVIDIA/helmify/pkg/processor"
+	yamlformat "github.com/vinodchitraliNVIDIA/helmify/pkg/yaml"
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
